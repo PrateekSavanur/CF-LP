@@ -2,5 +2,9 @@
 src = "src"
 out = "out"
 libs = ["lib"]
+env_path = ".env"
 
-# See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
+remappings = ["@uniswap/v2-periphery/contracts=lib/v2-periphery/contracts","@uniswap/v2-core/contracts=lib/v2-core/contracts","@openzeppelin/contracts=lib/openzeppelin-contracts/contracts/"]
+
+[rpc_endpoints]
+sepolia="https://eth-sepolia.g.alchemy.com/v2/G4mBTQkil8YSCbr0acyhwhERxiELhfRh"
