@@ -9,7 +9,8 @@ import "./ProjectToken.sol";
 
 contract CrowdfundingPlatform {
     struct Project {
-        string name;
+        string title;
+        string description;
         address tokenAddress;
         address liquidityPool;
         uint256 ethRaised;
@@ -28,9 +29,12 @@ contract CrowdfundingPlatform {
     }
 
     event ProjectCreated(string name, address tokenAddress, address liquidityPool, address creator);
+    event FundsWithdrawn(uint256 projectIndex, address creator, uint256 amount);
 
     function createProject(
-        string memory _name,
+        string memory _title,
+        string memory _description,
+        string memory _tokenName,
         string memory _symbol,
         uint256 _initialSupply,
         uint256 ethForLiquidity,
@@ -38,7 +42,7 @@ contract CrowdfundingPlatform {
     ) public payable {
         require(msg.value >= ethForLiquidity, "Not enough ETH for liquidity");
 
-        ProjectToken newToken = new ProjectToken(_name, _symbol, _initialSupply);
+        ProjectToken newToken = new ProjectToken(_tokenName, _symbol, _initialSupply);
 
         uint256 tokenLiquidityAmount = (_initialSupply * 50) / 100 * 10 ** newToken.decimals();
 
@@ -52,7 +56,8 @@ contract CrowdfundingPlatform {
 
         projects.push(
             Project({
-                name: _name,
+                title: _title,
+                description: _description,
                 tokenAddress: address(newToken),
                 liquidityPool: liquidityPool,
                 ethRaised: 0,
@@ -62,7 +67,7 @@ contract CrowdfundingPlatform {
             })
         );
 
-        emit ProjectCreated(_name, address(newToken), liquidityPool, msg.sender);
+        emit ProjectCreated(_title, address(newToken), liquidityPool, msg.sender);
     }
 
     function contribute(uint256 projectIndex) public payable {
@@ -109,5 +114,23 @@ contract CrowdfundingPlatform {
         uniswapRouter.swapExactTokensForETH(tokenAmount, minEthOut, path, msg.sender, block.timestamp + 600);
 
         return true;
+    }
+
+    function withdrawFunds(uint256 projectIndex) public {
+        Project storage project = projects[projectIndex];
+        require(msg.sender == project.creator, "Only the project creator can withdraw funds");
+        require(project.ethRaised > 0, "No funds to withdraw");
+
+        uint256 amountToWithdraw = project.ethRaised;
+        project.ethRaised = 0;
+
+        (bool success,) = msg.sender.call{value: amountToWithdraw}("");
+        require(success, "Withdrawal failed");
+
+        emit FundsWithdrawn(projectIndex, msg.sender, amountToWithdraw);
+    }
+
+    function getProjectCount() public view returns (uint256) {
+        return projects.length;
     }
 }
